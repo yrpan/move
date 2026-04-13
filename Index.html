@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Move Around</title>
+<hta:application
+  id="moveReminder"
+  applicationname="MoveAround"
+  border="thick"
+  borderstyle="normal"
+  caption="yes"
+  contextmenu="no"
+  icon="timer.ico"
+  innerborder="no"
+  maximizebutton="no"
+  minimizebutton="yes"
+  navigable="no"
+  resizable="yes"
+  scroll="no"
+  selection="no"
+  showintaskbar="yes"
+  singleinstance="yes"
+  sysmenu="yes"
+  version="1.0"
+  windowstate="normal"
+/>
+<style>
+  body {
+    font-family: 'Comic Sans MS', 'Chalkboard SE', cursive;
+    margin: 16px;
+    background: #f3f3f3;
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 32px);
+    box-sizing: border-box;
+  }
+  h2 {
+    margin: 0 0 12px 0;
+    color: #2c3e50;
+    font-weight: 400;
+    text-align: center;
+  }
+  .status-area {
+    background: white;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  #progressWrapper {
+    position: relative;
+    width: 100%;
+    height: 42px;
+    background-color: #ffffff;
+    border-radius: 21px;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+
+  #progressFill {
+    width: 0%;
+    height: 100%;
+    background-color: #ADD8E6;
+    border-radius: 21px;
+    transition: width 0.2s ease;
+  }
+
+  #timerText {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 42px;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1a3e5c;
+    text-shadow: 0 0 4px rgba(255,255,255,0.7);
+    text-align: center;
+    pointer-events: none;
+    margin: 0;
+    white-space: nowrap;
+  }
+
+  .controls {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 16px;
+  }
+  button {
+    padding: 8px 24px;
+    font-size: 16px;
+    font-weight: 500;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    background: #ecf0f1;
+    color: #2c3e50;
+    transition: background 0.1s;
+    min-width: 90px;
+  }
+  button:hover { background: #d5dbdb; }
+  button.primary { background: #3498db; color: white; }
+  button.primary:hover { background: #2980b9; }
+  button.stop {
+    background: #95a5a6;
+    color: white;
+  }
+  button.stop:hover { background: #7f8c8d; }
+</style>
+
+<script language="VBScript">
+Option Explicit
+
+Const WINDOW_WIDTH   = 400
+Const WINDOW_HEIGHT  = 255
+Const TOTAL_SECONDS  = 1800
+
+Dim timerID, secondsLeft, running, alertActive
+running = False
+alertActive = False
+secondsLeft = TOTAL_SECONDS
+
+Sub Window_OnLoad
+    window.resizeTo WINDOW_WIDTH, WINDOW_HEIGHT
+    UpdateDisplay
+    toggleBtn.innerHTML = "Start"
+    toggleBtn.className = "primary"
+End Sub
+
+Sub ToggleTimer
+    If running Then
+        ' Stop timer
+        window.clearInterval timerID
+        running = False
+        toggleBtn.innerHTML = "Start"
+        toggleBtn.className = "primary"
+    Else
+        ' Start timer
+        running = True
+        secondsLeft = TOTAL_SECONDS
+        UpdateDisplay
+        timerID = window.setInterval("Tick()", 1000)
+        toggleBtn.innerHTML = "Stop"
+        toggleBtn.className = "stop"
+    End If
+End Sub
+
+Sub Tick
+    ' Prevent re-entrancy during MsgBox
+    If alertActive Then Exit Sub
+    If Not running Then Exit Sub
+
+    secondsLeft = secondsLeft - 1
+    UpdateDisplay
+
+    If secondsLeft <= 0 Then
+        alertActive = True
+        window.clearInterval timerID
+        running = False
+
+        Call PlaySystemBeep()
+
+        MsgBox "***TIME TO MOVE AROUND***", vbInformation + vbSystemModal, "Move Around"
+
+        secondsLeft = TOTAL_SECONDS
+        UpdateDisplay
+
+        running = True
+        timerID = window.setInterval("Tick()", 1000)
+        toggleBtn.innerHTML = "Stop"
+        toggleBtn.className = "stop"
+
+        alertActive = False
+    End If
+End Sub
+
+Sub UpdateDisplay
+    Dim mins, secs, percentComplete
+    mins = Int(secondsLeft / 60)
+    secs = secondsLeft Mod 60
+
+    timerText.innerHTML = "Next reminder in: " & mins & "m " & Right("0" & secs, 2) & "s"
+    percentComplete = ((TOTAL_SECONDS - secondsLeft) / TOTAL_SECONDS) * 100
+    progressFill.style.width = percentComplete & "%"
+End Sub
+
+Sub PlaySystemBeep()
+    Dim shell
+    Set shell = CreateObject("WScript.Shell")
+    shell.Run "%comspec% /c echo " & Chr(7), 0, False
+    Set shell = Nothing
+End Sub
+
+Sub StopAndClose
+    window.clearInterval timerID
+    window.close
+End Sub
+</script>
+</head>
+<body>
+  <h2>🕒 Move Around</h2>
+  
+  <div class="status-area">
+    <div id="progressWrapper">
+      <div id="progressFill"></div>
+      <div id="timerText">Every 30 Min</div>
+    </div>
+  </div>
+  
+  <div class="controls">
+    <button id="toggleBtn" class="primary" onclick="ToggleTimer">Start</button>
+    <button onclick="StopAndClose">Close</button>
+  </div>
+</body>
+</html>
